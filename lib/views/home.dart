@@ -18,6 +18,8 @@ class _HomePageState extends State<HomePage> {
   List<dynamic> wallpapersList = [];
   ScrollController scrollController = ScrollController();
   int pages = 1;
+  bool isLoading = true;
+  bool pageEnd = false;
 
   @override
   void initState() {
@@ -27,8 +29,13 @@ class _HomePageState extends State<HomePage> {
       if (scrollController.position.pixels ==
           scrollController.position.maxScrollExtent) {
         setState(() {
+          pageEnd = true;
           pages += 1;
           getWallpapers();
+        });
+      } else {
+        setState(() {
+          pageEnd = false;
         });
       }
     });
@@ -50,6 +57,7 @@ class _HomePageState extends State<HomePage> {
         final responseJson = jsonDecode(response.body);
         setState(() {
           wallpapersList += responseJson;
+          isLoading = false;
         });
       } catch (e) {
         print(e);
@@ -61,45 +69,67 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: Text("SplashApp",
-              style: GoogleFonts.sniglet(
-                  textStyle: TextStyle(color: Colors.white, fontSize: 23))),
-          backgroundColor: mainColor,
-          elevation: 0,
-        ),
-        body: wallpapersList != null
-            ? Container(
-                color: mainColor,
-                child: StaggeredGridView.countBuilder(
-                  controller: scrollController,
-                  padding: const EdgeInsets.all(10.0),
-                  crossAxisCount: 4,
-                  itemBuilder: (BuildContext context, int index) {
-                    String imgPath = wallpapersList[index]["urls"]["regular"];
-                    return Card(
-                      child: InkWell(
-                        onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => ImagePage(
-                                    wallpapersList[index]["urls"]["regular"]))),
-                        child: Hero(
-                            tag: imgPath,
-                            child: FadeInImage(
-                              width: MediaQuery.of(context).size.width,
-                              placeholder: AssetImage("assets/loading.png"),
-                              image: NetworkImage(imgPath),
-                              fit: BoxFit.cover,
-                            )),
-                      ),
-                    );
-                  },
-                  staggeredTileBuilder: (index) =>
-                      StaggeredTile.count(2, index.isEven ? 2 : 3),
-                  itemCount: wallpapersList.length,
+      appBar: AppBar(
+        title: Text("SplashApp",
+            style: GoogleFonts.sniglet(
+                textStyle: TextStyle(color: Colors.white, fontSize: 23))),
+        backgroundColor: mainColor,
+        elevation: 0,
+      ),
+      body: !isLoading
+          ? Column(
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                Expanded(
+                  child: Container(
+                    color: mainColor,
+                    child: StaggeredGridView.countBuilder(
+                      controller: scrollController,
+                      padding: const EdgeInsets.all(10.0),
+                      crossAxisCount: 4,
+                      itemBuilder: (BuildContext context, int index) {
+                        String imgPath =
+                            wallpapersList[index]["urls"]["regular"];
+                        return Card(
+                          child: InkWell(
+                            onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => ImagePage(
+                                          wallpapersList[index]["urls"]
+                                              ["regular"],
+                                          wallpapersList[index]["id"],
+                                        ))),
+                            child: Hero(
+                                tag: imgPath,
+                                child: FadeInImage(
+                                  width: MediaQuery.of(context).size.width,
+                                  placeholder: AssetImage("assets/loading.png"),
+                                  image: NetworkImage(imgPath),
+                                  fit: BoxFit.cover,
+                                )),
+                          ),
+                        );
+                      },
+                      staggeredTileBuilder: (index) =>
+                          StaggeredTile.count(2, index.isEven ? 2 : 3),
+                      itemCount: wallpapersList.length,
+                    ),
+                  ),
                 ),
-              )
-            : Center(child: CircularProgressIndicator()));
+                pageEnd
+                    ? Container(
+                        padding: EdgeInsets.symmetric(
+                          vertical: 20,
+                        ),
+                        color: mainColor,
+                        child: Center(
+                          child: CircularProgressIndicator(),
+                        ))
+                    : Container()
+              ],
+            )
+          : Center(child: CircularProgressIndicator()),
+    );
   }
 }
